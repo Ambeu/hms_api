@@ -1,0 +1,1008 @@
+{
+  "info": {
+    "name": "HMS API",
+    "description": "Hotel Management System — Collection complete\n\nVariables d'environnement :\n- base_url : URL de l'API\n- token : JWT utilisateur connecte (mis a jour auto apres login)\n- super_admin_token : JWT super admin (mis a jour auto apres login super admin)\n- etab_id : ID etablissement courant",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "base_url",           "value": "http://localhost/hms-projet/public/api" },
+    { "key": "token",              "value": "" },
+    { "key": "super_admin_token",  "value": "" },
+    { "key": "etab_id",            "value": "1" }
+  ],
+  "item": [
+
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "Register (vitrine — cree etablissement)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 201) {",
+            "  const d = pm.response.json().data;",
+            "  pm.environment.set('token', d.token);",
+            "  pm.environment.set('etab_id', d.etablissement.id);",
+            "  console.log('Etablissement ID:', d.etablissement.id);",
+            "}"
+          ]}}],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": "{{base_url}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nom\": \"Ambeu\",\n  \"prenom\": \"Anderson\",\n  \"email\": \"anderson@hms.cm\",\n  \"phone\": \"699000001\",\n  \"password\": \"Password123!\",\n  \"password_confirmation\": \"Password123!\",\n  \"etablissement\": {\n    \"nom\": \"Hotel Le Palace\",\n    \"type_etablissement_id\": 1,\n    \"devise_id\": 1,\n    \"adresse\": \"Rue de la Paix, Yaounde\",\n    \"telephone\": \"222001122\",\n    \"whatsapp\": \"699000001\",\n    \"email\": \"contact@lepalace.cm\",\n    \"nombre_etoiles\": 4,\n    \"nb_etages\": 5,\n    \"numero_registre\": \"RC/YAO/2024/B/001\",\n    \"numero_fiscal\": \"M024100001234A\",\n    \"date_ouverture\": \"2024-01-15\"\n  }\n}" }
+          }
+        },
+        {
+          "name": "Login (utilisateur)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 200) {",
+            "  const d = pm.response.json().data;",
+            "  pm.environment.set('token', d.token);",
+            "  if (d.user.current_etablissement_id) {",
+            "    pm.environment.set('etab_id', d.user.current_etablissement_id);",
+            "  }",
+            "}"
+          ]}}],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"anderson@hms.cm\",\n  \"password\": \"Password123!\"\n}" }
+          }
+        },
+        {
+          "name": "Login (super admin)",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 200) {",
+            "  const d = pm.response.json().data;",
+            "  pm.environment.set('super_admin_token', d.token);",
+            "  console.log('Super Admin token mis a jour');",
+            "}"
+          ]}}],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"superadmin@hms.cm\",\n  \"password\": \"SuperAdmin@2026!\"\n}" }
+          }
+        },
+        {
+          "name": "Me",
+          "request": { "method": "GET", "url": "{{base_url}}/auth/me" }
+        },
+        {
+          "name": "Switch Etablissement",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 200) {",
+            "  const d = pm.response.json().data;",
+            "  pm.environment.set('token', d.token);",
+            "  pm.environment.set('etab_id', d.etablissement_id);",
+            "  console.log('Switched to etablissement:', d.etablissement_id);",
+            "}"
+          ]}}],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/auth/switch-etablissement",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"etablissement_id\": {{etab_id}}\n}" }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [{ "listen": "test", "script": { "exec": [
+            "if (pm.response.code === 200) {",
+            "  pm.environment.set('token', pm.response.json().data.token);",
+            "}"
+          ]}}],
+          "request": { "method": "POST", "url": "{{base_url}}/auth/refresh" }
+        },
+        {
+          "name": "Logout",
+          "request": { "method": "POST", "url": "{{base_url}}/auth/logout" }
+        }
+      ]
+    },
+
+    {
+      "name": "📚 Referentiels (super_admin uniquement pour ecriture)",
+      "description": "GET : tous les utilisateurs authentifies\nPOST / PUT / DELETE : super_admin uniquement\n\nUtiliser le token super admin : Authorization: Bearer {{super_admin_token}}",
+      "item": [
+        {
+          "name": "Devises",
+          "item": [
+            { "name": "Liste", "request": { "method": "GET", "url": "{{base_url}}/devises" }},
+            {
+              "name": "Creer [super_admin]",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{super_admin_token}}", "type": "string" }] },
+                "method": "POST",
+                "url": "{{base_url}}/devises",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"code\": \"XAF\",\n  \"nom\": \"Franc CFA BEAC\",\n  \"symbole\": \"FCFA\",\n  \"actif\": true\n}" }
+              }
+            },
+            { "name": "Detail", "request": { "method": "GET", "url": "{{base_url}}/devises/1" }},
+            {
+              "name": "Modifier [super_admin]",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{super_admin_token}}", "type": "string" }] },
+                "method": "PUT",
+                "url": "{{base_url}}/devises/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"nom\": \"Franc CFA BEAC (Afrique centrale)\"\n}" }
+              }
+            },
+            {
+              "name": "Supprimer [super_admin]",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{super_admin_token}}", "type": "string" }] },
+                "method": "DELETE",
+                "url": "{{base_url}}/devises/1"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Types etablissement",
+          "item": [
+            { "name": "Liste", "request": { "method": "GET", "url": "{{base_url}}/type-etablissements" }},
+            {
+              "name": "Creer [super_admin]",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{super_admin_token}}", "type": "string" }] },
+                "method": "POST",
+                "url": "{{base_url}}/type-etablissements",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"nom\": \"Hotel\",\n  \"description\": \"Etablissement hotelier classique\"\n}" }
+              }
+            },
+            {
+              "name": "Modifier [super_admin]",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{super_admin_token}}", "type": "string" }] },
+                "method": "PUT",
+                "url": "{{base_url}}/type-etablissements/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"description\": \"Grand hotel avec services complets\"\n}" }
+              }
+            },
+            {
+              "name": "Supprimer [super_admin]",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{super_admin_token}}", "type": "string" }] },
+                "method": "DELETE",
+                "url": "{{base_url}}/type-etablissements/1"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Programme Fidelite",
+          "item": [
+            { "name": "Liste", "request": { "method": "GET", "url": "{{base_url}}/programme-fidelites" }},
+            {
+              "name": "Creer [super_admin]",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{super_admin_token}}", "type": "string" }] },
+                "method": "POST",
+                "url": "{{base_url}}/programme-fidelites",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"niveau\": \"Diamant\",\n  \"points_min\": 20000,\n  \"points_max\": null,\n  \"remise_pct\": 20,\n  \"avantages\": [\"20% de reduction\", \"Suite presidentielle\", \"Chauffeur prive\"]\n}" }
+              }
+            },
+            {
+              "name": "Modifier [super_admin]",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{super_admin_token}}", "type": "string" }] },
+                "method": "PUT",
+                "url": "{{base_url}}/programme-fidelites/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"remise_pct\": 5\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Canaux de distribution",
+          "item": [
+            { "name": "Liste", "request": { "method": "GET", "url": "{{base_url}}/canal-distributions" }},
+            {
+              "name": "Creer [super_admin]",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{super_admin_token}}", "type": "string" }] },
+                "method": "POST",
+                "url": "{{base_url}}/canal-distributions",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"nom\": \"Booking.com\",\n  \"type\": \"OTA\",\n  \"api_endpoint\": \"https://api.booking.com\",\n  \"actif\": true\n}" }
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "🏨 Etablissements",
+      "item": [
+        { "name": "Mes etablissements", "request": { "method": "GET", "url": "{{base_url}}/etablissements" }},
+        {
+          "name": "Creer",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/etablissements",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nom\": \"Auberge du Centre\",\n  \"type_etablissement_id\": 1,\n  \"devise_id\": 1,\n  \"adresse\": \"Avenue Kennedy, Douala\",\n  \"telephone\": \"233445566\",\n  \"whatsapp\": \"677445566\",\n  \"email\": \"info@auberge.cm\",\n  \"nombre_etoiles\": 3,\n  \"nb_etages\": 3,\n  \"latitude\": 3.848,\n  \"longitude\": 11.502\n}" }
+          }
+        },
+        { "name": "Detail", "request": { "method": "GET", "url": "{{base_url}}/etablissements/{{etab_id}}" }},
+        {
+          "name": "Modifier",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/etablissements/{{etab_id}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre_etoiles\": 5,\n  \"site_web\": \"https://lepalace.cm\",\n  \"whatsapp\": \"699000002\"\n}" }
+          }
+        },
+        { "name": "Supprimer", "request": { "method": "DELETE", "url": "{{base_url}}/etablissements/{{etab_id}}" }}
+      ]
+    },
+
+    {
+      "name": "🏢 Hebergement",
+      "item": [
+        {
+          "name": "Etages",
+          "item": [
+            { "name": "Liste", "request": { "method": "GET", "url": "{{base_url}}/etages" }},
+            {
+              "name": "Creer",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/etages",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"numero\": 0,\n  \"nom\": \"Rez-de-chaussee\"\n}" }
+              }
+            },
+            { "name": "Detail", "request": { "method": "GET", "url": "{{base_url}}/etages/1" }},
+            {
+              "name": "Modifier",
+              "request": {
+                "method": "PUT", "url": "{{base_url}}/etages/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"nom\": \"RDC\"\n}" }
+              }
+            },
+            { "name": "Supprimer", "request": { "method": "DELETE", "url": "{{base_url}}/etages/1" }}
+          ]
+        },
+        {
+          "name": "Types de chambre",
+          "item": [
+            { "name": "Liste", "request": { "method": "GET", "url": "{{base_url}}/type-chambres" }},
+            {
+              "name": "Creer",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/type-chambres",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"nom\": \"Suite Junior\",\n  \"description\": \"Suite avec vue panoramique\",\n  \"prix_base\": 75000,\n  \"capacite_max\": 2,\n  \"nb_lits\": 1,\n  \"superficie_m2\": \"35\"\n}" }
+              }
+            },
+            { "name": "Detail", "request": { "method": "GET", "url": "{{base_url}}/type-chambres/1" }},
+            {
+              "name": "Modifier",
+              "request": {
+                "method": "PUT", "url": "{{base_url}}/type-chambres/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"prix_base\": 80000\n}" }
+              }
+            },
+            { "name": "Supprimer", "request": { "method": "DELETE", "url": "{{base_url}}/type-chambres/1" }}
+          ]
+        },
+        {
+          "name": "Chambres",
+          "item": [
+            { "name": "Liste", "request": { "method": "GET", "url": { "raw": "{{base_url}}/chambres", "query": [{ "key": "statut", "value": "disponible", "disabled": true }, { "key": "etage_id", "value": "1", "disabled": true }, { "key": "type_chambre_id", "value": "1", "disabled": true }] }}},
+            {
+              "name": "Creer",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/chambres",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"type_chambre_id\": 1,\n  \"etage_id\": 1,\n  \"numero\": \"101\",\n  \"statut\": \"disponible\",\n  \"vue\": \"Jardin\",\n  \"equipements\": [\"Climatisation\", \"TV\", \"Minibar\", \"WiFi\"]\n}" }
+              }
+            },
+            { "name": "Detail", "request": { "method": "GET", "url": "{{base_url}}/chambres/1" }},
+            {
+              "name": "Modifier statut",
+              "request": {
+                "method": "PUT", "url": "{{base_url}}/chambres/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"statut\": \"hors_service\",\n  \"hors_service\": true\n}" }
+              }
+            },
+            { "name": "Supprimer", "request": { "method": "DELETE", "url": "{{base_url}}/chambres/1" }}
+          ]
+        },
+        {
+          "name": "Tarifs",
+          "description": "Champ 'unite' : nuit | heure | jour | semaine\nChamp 'duree_min' : duree minimale de reservation (en unites)",
+          "item": [
+            { "name": "Liste", "request": { "method": "GET", "url": { "raw": "{{base_url}}/tarifs", "query": [{ "key": "type_chambre_id", "value": "1", "disabled": true }] }}},
+            {
+              "name": "Creer (nuit — standard)",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/tarifs",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"type_chambre_id\": 1,\n  \"nom\": \"Tarif Standard\",\n  \"prix\": 75000,\n  \"unite\": \"nuit\",\n  \"duree_min\": 1,\n  \"type_tarif\": \"standard\"\n}" }
+              }
+            },
+            {
+              "name": "Creer (nuit — weekend)",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/tarifs",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"type_chambre_id\": 1,\n  \"nom\": \"Tarif Week-end\",\n  \"prix\": 90000,\n  \"unite\": \"nuit\",\n  \"duree_min\": 2,\n  \"type_tarif\": \"weekend\",\n  \"date_debut\": \"2026-01-01\",\n  \"date_fin\": \"2026-12-31\"\n}" }
+              }
+            },
+            {
+              "name": "Creer (heure — repos)",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/tarifs",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"type_chambre_id\": 1,\n  \"nom\": \"Tarif Repos / Passage\",\n  \"prix\": 8000,\n  \"unite\": \"heure\",\n  \"duree_min\": 2,\n  \"type_tarif\": \"standard\"\n}" }
+              }
+            },
+            {
+              "name": "Creer (jour — journee)",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/tarifs",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"type_chambre_id\": 1,\n  \"nom\": \"Tarif Journee\",\n  \"prix\": 45000,\n  \"unite\": \"jour\",\n  \"duree_min\": 1,\n  \"type_tarif\": \"standard\"\n}" }
+              }
+            },
+            {
+              "name": "Creer (semaine)",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/tarifs",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"type_chambre_id\": 1,\n  \"nom\": \"Tarif Semaine\",\n  \"prix\": 420000,\n  \"unite\": \"semaine\",\n  \"duree_min\": 1,\n  \"type_tarif\": \"promo\"\n}" }
+              }
+            },
+            {
+              "name": "Modifier",
+              "request": {
+                "method": "PUT", "url": "{{base_url}}/tarifs/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"prix\": 70000,\n  \"duree_min\": 1\n}" }
+              }
+            },
+            { "name": "Supprimer", "request": { "method": "DELETE", "url": "{{base_url}}/tarifs/1" }}
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "👤 Clients",
+      "item": [
+        { "name": "Liste", "request": { "method": "GET", "url": { "raw": "{{base_url}}/clients", "query": [{ "key": "search", "value": "Ambeu", "disabled": true }, { "key": "segment", "value": "vip", "disabled": true }] }}},
+        {
+          "name": "Creer",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/clients",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nom\": \"NKOLO\",\n  \"prenom\": \"Jean-Paul\",\n  \"email\": \"jeanpaul@example.cm\",\n  \"telephone\": \"677112233\",\n  \"nationalite\": \"Camerounaise\",\n  \"type_document\": \"cni\",\n  \"numero_document\": \"123456789\",\n  \"date_naissance\": \"1985-06-15\",\n  \"segment\": \"standard\",\n  \"preferences\": [\"chambre_calme\", \"etage_eleve\"]\n}" }
+          }
+        },
+        { "name": "Detail", "request": { "method": "GET", "url": "{{base_url}}/clients/1" }},
+        {
+          "name": "Modifier",
+          "request": {
+            "method": "PUT", "url": "{{base_url}}/clients/1",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"segment\": \"vip\"\n}" }
+          }
+        },
+        { "name": "Supprimer", "request": { "method": "DELETE", "url": "{{base_url}}/clients/1" }},
+        { "name": "Points fidelite", "request": { "method": "GET", "url": "{{base_url}}/clients/1/points" }}
+      ]
+    },
+
+    {
+      "name": "📅 Reservations",
+      "description": "date_arrivee et date_depart acceptent :\n- Format date seule : \"2026-05-15\" (pour reservations a la nuit/journee)\n- Format datetime : \"2026-05-15T14:00:00\" (obligatoire pour reservations a l'heure)\n\nLe prix est calcule automatiquement selon l'unite du tarif.",
+      "item": [
+        { "name": "Liste", "request": { "method": "GET", "url": { "raw": "{{base_url}}/reservations", "query": [{ "key": "statut", "value": "confirmee", "disabled": true }, { "key": "date_arrivee", "value": "2026-05-11", "disabled": true }, { "key": "client_id", "value": "1", "disabled": true }] }}},
+        {
+          "name": "Creer (a la nuit — 3 nuits)",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/reservations",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"client_id\": 1,\n  \"chambre_id\": 1,\n  \"tarif_id\": 1,\n  \"canal_source\": \"direct\",\n  \"date_arrivee\": \"2026-05-20T14:00:00\",\n  \"date_depart\": \"2026-05-23T11:00:00\",\n  \"nb_adultes\": 2,\n  \"nb_enfants\": 0,\n  \"notes_speciales\": \"Chambre non-fumeur\"\n}" }
+          }
+        },
+        {
+          "name": "Creer (a l'heure — 3 heures repos)",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/reservations",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"client_id\": 1,\n  \"chambre_id\": 1,\n  \"tarif_id\": 3,\n  \"canal_source\": \"direct\",\n  \"date_arrivee\": \"2026-05-15T10:00:00\",\n  \"date_depart\": \"2026-05-15T13:00:00\",\n  \"nb_adultes\": 1,\n  \"nb_enfants\": 0,\n  \"notes_speciales\": \"Passage / repos\"\n}" }
+          }
+        },
+        {
+          "name": "Creer (a la journee — 2 jours)",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/reservations",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"client_id\": 1,\n  \"chambre_id\": 1,\n  \"tarif_id\": 4,\n  \"canal_source\": \"entreprise\",\n  \"date_arrivee\": \"2026-05-15T08:00:00\",\n  \"date_depart\": \"2026-05-17T18:00:00\",\n  \"nb_adultes\": 1,\n  \"nb_enfants\": 0\n}" }
+          }
+        },
+        {
+          "name": "Creer (a la semaine)",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/reservations",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"client_id\": 1,\n  \"chambre_id\": 1,\n  \"tarif_id\": 5,\n  \"canal_source\": \"direct\",\n  \"date_arrivee\": \"2026-05-15T14:00:00\",\n  \"date_depart\": \"2026-05-22T11:00:00\",\n  \"nb_adultes\": 2,\n  \"nb_enfants\": 1\n}" }
+          }
+        },
+        { "name": "Detail", "request": { "method": "GET", "url": "{{base_url}}/reservations/1" }},
+        {
+          "name": "Modifier statut",
+          "request": {
+            "method": "PUT", "url": "{{base_url}}/reservations/1",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"statut\": \"en_attente\"\n}" }
+          }
+        },
+        { "name": "Annuler", "request": { "method": "DELETE", "url": "{{base_url}}/reservations/1" }},
+        {
+          "name": "Check-in",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/reservations/1/checkin",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"numero_cle\": \"101A\",\n  \"early_checkin\": false,\n  \"observations\": \"Client arrive a 14h00\"\n}" }
+          }
+        },
+        {
+          "name": "Check-out",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/reservations/1/checkout",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"late_checkout\": false,\n  \"observations\": \"Client parti a 11h30\"\n}" }
+          }
+        },
+        {
+          "name": "Historique checkins",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/checkins", "query": [{ "key": "type", "value": "checkin", "disabled": true }, { "key": "date", "value": "2026-05-11", "disabled": true }] }}
+        }
+      ]
+    },
+
+    {
+      "name": "🧾 Facturation",
+      "item": [
+        { "name": "Liste", "request": { "method": "GET", "url": { "raw": "{{base_url}}/factures", "query": [{ "key": "statut", "value": "emise", "disabled": true }, { "key": "client_id", "value": "1", "disabled": true }] }}},
+        {
+          "name": "Creer (sejour 3 nuits)",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/factures",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"reservation_id\": 1,\n  \"type_facture\": \"sejour\",\n  \"mode_paiement\": \"especes\",\n  \"lignes\": [\n    {\n      \"description\": \"3 nuits Suite Junior (20-23/05)\",\n      \"categorie\": \"hebergement\",\n      \"quantite\": 3,\n      \"prix_unitaire\": 75000\n    },\n    {\n      \"description\": \"Minibar\",\n      \"categorie\": \"extras\",\n      \"quantite\": 1,\n      \"prix_unitaire\": 5000\n    }\n  ]\n}" }
+          }
+        },
+        {
+          "name": "Creer (repos 3 heures)",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/factures",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"reservation_id\": 2,\n  \"type_facture\": \"sejour\",\n  \"mode_paiement\": \"mobile_money\",\n  \"lignes\": [\n    {\n      \"description\": \"3 heures de repos (10h00-13h00)\",\n      \"categorie\": \"hebergement\",\n      \"quantite\": 3,\n      \"prix_unitaire\": 8000\n    }\n  ]\n}" }
+          }
+        },
+        { "name": "Detail", "request": { "method": "GET", "url": "{{base_url}}/factures/1" }},
+        {
+          "name": "Marquer payee",
+          "request": {
+            "method": "PATCH", "url": "{{base_url}}/factures/1/payer",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"mode_paiement\": \"mobile_money\"\n}" }
+          }
+        },
+        { "name": "Annuler", "request": { "method": "DELETE", "url": "{{base_url}}/factures/1" }}
+      ]
+    },
+
+    {
+      "name": "🧹 Menage & Objets",
+      "item": [
+        {
+          "name": "Taches de menage",
+          "item": [
+            { "name": "Liste", "request": { "method": "GET", "url": { "raw": "{{base_url}}/tache-menages", "query": [{ "key": "statut", "value": "assignee", "disabled": true }, { "key": "agent_id", "value": "1", "disabled": true }, { "key": "date", "value": "2026-05-11", "disabled": true }] }}},
+            {
+              "name": "Creer",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/tache-menages",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"chambre_id\": 1,\n  \"agent_id\": 2,\n  \"type_tache\": \"depart\",\n  \"checklist\": [\n    { \"item\": \"Changer draps\", \"fait\": false },\n    { \"item\": \"Nettoyer salle de bain\", \"fait\": false },\n    { \"item\": \"Vider minibar\", \"fait\": false }\n  ]\n}" }
+              }
+            },
+            {
+              "name": "Demarrer tache",
+              "request": {
+                "method": "PUT", "url": "{{base_url}}/tache-menages/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"statut\": \"en_cours\"\n}" }
+              }
+            },
+            {
+              "name": "Terminer tache",
+              "request": {
+                "method": "PUT", "url": "{{base_url}}/tache-menages/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"statut\": \"terminee\",\n  \"checklist\": [\n    { \"item\": \"Changer draps\", \"fait\": true },\n    { \"item\": \"Nettoyer salle de bain\", \"fait\": true },\n    { \"item\": \"Vider minibar\", \"fait\": true }\n  ],\n  \"observations\": \"Chambre prete\"\n}" }
+              }
+            },
+            { "name": "Supprimer", "request": { "method": "DELETE", "url": "{{base_url}}/tache-menages/1" }}
+          ]
+        },
+        {
+          "name": "Objets oublies",
+          "item": [
+            { "name": "Liste", "request": { "method": "GET", "url": { "raw": "{{base_url}}/objet-oublies", "query": [{ "key": "statut", "value": "signale", "disabled": true }] }}},
+            {
+              "name": "Signaler",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/objet-oublies",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"chambre_id\": 1,\n  \"client_id\": 1,\n  \"description\": \"Chargeur de telephone blanc trouve dans le tiroir\"\n}" }
+              }
+            },
+            {
+              "name": "Marquer rendu",
+              "request": {
+                "method": "PUT", "url": "{{base_url}}/objet-oublies/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"statut\": \"rendu\"\n}" }
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "👥 Utilisateurs",
+      "item": [
+        { "name": "Liste", "request": { "method": "GET", "url": "{{base_url}}/utilisateurs" }},
+        {
+          "name": "Creer",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/utilisateurs",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nom\": \"FOUDA\",\n  \"prenom\": \"Marie\",\n  \"email\": \"marie@lepalace.cm\",\n  \"phone\": \"655223344\",\n  \"password\": \"Password123!\",\n  \"password_confirmation\": \"Password123!\",\n  \"role\": \"reception\"\n}" }
+          }
+        },
+        { "name": "Detail", "request": { "method": "GET", "url": "{{base_url}}/utilisateurs/2" }},
+        {
+          "name": "Modifier role",
+          "request": {
+            "method": "PUT", "url": "{{base_url}}/utilisateurs/2",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"role\": \"manager\"\n}" }
+          }
+        },
+        { "name": "Retirer de l'etablissement", "request": { "method": "DELETE", "url": "{{base_url}}/utilisateurs/2" }}
+      ]
+    },
+
+    {
+      "name": "🍽️ Restauration",
+      "item": [
+        {
+          "name": "Menus",
+          "item": [
+            { "name": "Liste", "request": { "method": "GET", "url": { "raw": "{{base_url}}/menus", "query": [{ "key": "type_repas", "value": "dejeuner", "disabled": true }] }}},
+            {
+              "name": "Creer",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/menus",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"nom\": \"Menu du jour\",\n  \"type_repas\": \"dejeuner\",\n  \"actif\": true\n}" }
+              }
+            },
+            { "name": "Detail", "request": { "method": "GET", "url": "{{base_url}}/menus/1" }},
+            {
+              "name": "Modifier",
+              "request": {
+                "method": "PUT", "url": "{{base_url}}/menus/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"actif\": false\n}" }
+              }
+            },
+            { "name": "Supprimer", "request": { "method": "DELETE", "url": "{{base_url}}/menus/1" }}
+          ]
+        },
+        {
+          "name": "Categories menu",
+          "item": [
+            { "name": "Liste", "request": { "method": "GET", "url": "{{base_url}}/categories-menu" }},
+            {
+              "name": "Creer",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/categories-menu",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"nom\": \"Entrees\",\n  \"icone\": \"salad\",\n  \"ordre\": 1\n}" }
+              }
+            },
+            {
+              "name": "Modifier",
+              "request": {
+                "method": "PUT", "url": "{{base_url}}/categories-menu/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"ordre\": 2\n}" }
+              }
+            },
+            { "name": "Supprimer", "request": { "method": "DELETE", "url": "{{base_url}}/categories-menu/1" }}
+          ]
+        },
+        {
+          "name": "Articles menu",
+          "item": [
+            { "name": "Liste", "request": { "method": "GET", "url": { "raw": "{{base_url}}/articles-menu", "query": [{ "key": "menu_id", "value": "1", "disabled": true }, { "key": "categorie_id", "value": "1", "disabled": true }, { "key": "disponible", "value": "true", "disabled": true }] }}},
+            {
+              "name": "Creer",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/articles-menu",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"menu_id\": 1,\n  \"categorie_id\": 1,\n  \"nom\": \"Poulet DG\",\n  \"description\": \"Poulet au four avec legumes\",\n  \"prix\": 5000,\n  \"allergenes\": [],\n  \"disponible\": true,\n  \"stock_initial\": 20,\n  \"seuil_alerte\": 3\n}" }
+              }
+            },
+            {
+              "name": "Modifier",
+              "request": {
+                "method": "PUT", "url": "{{base_url}}/articles-menu/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"prix\": 5500,\n  \"disponible\": true\n}" }
+              }
+            },
+            { "name": "Supprimer", "request": { "method": "DELETE", "url": "{{base_url}}/articles-menu/1" }}
+          ]
+        },
+        {
+          "name": "Commandes restaurant",
+          "item": [
+            { "name": "Liste", "request": { "method": "GET", "url": { "raw": "{{base_url}}/commandes-restaurant", "query": [{ "key": "statut", "value": "en_attente", "disabled": true }, { "key": "type_commande", "value": "room_service", "disabled": true }, { "key": "date", "value": "2026-05-11", "disabled": true }] }}},
+            {
+              "name": "Creer (Room Service)",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/commandes-restaurant",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"client_id\": 1,\n  \"reservation_id\": 1,\n  \"type_commande\": \"room_service\",\n  \"numero_chambre\": \"101\",\n  \"lignes\": [\n    { \"article_id\": 1, \"quantite\": 2, \"notes\": \"Bien cuit\" },\n    { \"article_id\": 2, \"quantite\": 1 }\n  ]\n}" }
+              }
+            },
+            {
+              "name": "Creer (Sur place)",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/commandes-restaurant",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"type_commande\": \"sur_place\",\n  \"numero_table\": 5,\n  \"lignes\": [\n    { \"article_id\": 1, \"quantite\": 1 }\n  ]\n}" }
+              }
+            },
+            {
+              "name": "Creer (A emporter)",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/commandes-restaurant",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"client_id\": 1,\n  \"type_commande\": \"emporter\",\n  \"lignes\": [\n    { \"article_id\": 1, \"quantite\": 2 }\n  ]\n}" }
+              }
+            },
+            { "name": "Detail", "request": { "method": "GET", "url": "{{base_url}}/commandes-restaurant/1" }},
+            {
+              "name": "Passer en preparation",
+              "request": {
+                "method": "PUT", "url": "{{base_url}}/commandes-restaurant/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"statut\": \"en_preparation\"\n}" }
+              }
+            },
+            {
+              "name": "Marquer servie",
+              "request": {
+                "method": "PUT", "url": "{{base_url}}/commandes-restaurant/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"statut\": \"servie\"\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Stock",
+          "item": [
+            { "name": "Liste stock", "request": { "method": "GET", "url": "{{base_url}}/stock-articles" }},
+            { "name": "Alertes stock", "request": { "method": "GET", "url": { "raw": "{{base_url}}/stock-articles?alerte=true", "query": [{ "key": "alerte", "value": "true" }] }}},
+            {
+              "name": "Mettre a jour",
+              "request": {
+                "method": "PATCH", "url": "{{base_url}}/stock-articles/1",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"quantite_disponible\": 50,\n  \"seuil_alerte\": 5\n}" }
+              }
+            },
+            {
+              "name": "Ajuster (+/-)",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/stock-articles/1/ajuster",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"quantite\": -3\n}" }
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "⭐ Fidelite & Avis",
+      "item": [
+        {
+          "name": "Avis clients",
+          "item": [
+            { "name": "Liste", "request": { "method": "GET", "url": { "raw": "{{base_url}}/avis-clients", "query": [{ "key": "note_min", "value": "4", "disabled": true }] }}},
+            { "name": "Statistiques", "request": { "method": "GET", "url": "{{base_url}}/avis-clients/statistiques" }},
+            {
+              "name": "Soumettre un avis",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/avis-clients",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"client_id\": 1,\n  \"reservation_id\": 1,\n  \"note_globale\": 5,\n  \"note_chambre\": 5,\n  \"note_service\": 4,\n  \"note_restauration\": 5,\n  \"commentaire\": \"Excellent sejour, personnel tres accueillant !\"\n}" }
+              }
+            },
+            { "name": "Supprimer", "request": { "method": "DELETE", "url": "{{base_url}}/avis-clients/1" }}
+          ]
+        },
+        {
+          "name": "Points fidelite",
+          "item": [
+            { "name": "Solde client", "request": { "method": "GET", "url": "{{base_url}}/clients/1/points" }},
+            {
+              "name": "Crediter points",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/transaction-points",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"client_id\": 1,\n  \"reservation_id\": 1,\n  \"type_operation\": \"credit\",\n  \"points\": 750\n}" }
+              }
+            },
+            {
+              "name": "Debiter points",
+              "request": {
+                "method": "POST", "url": "{{base_url}}/transaction-points",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"client_id\": 1,\n  \"type_operation\": \"debit\",\n  \"points\": 200\n}" }
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "🌐 Grand Public",
+      "item": [
+        {
+          "name": "Info établissement",
+          "request": { "auth": { "type": "noauth" }, "method": "GET",
+            "url": "{{base_url}}/public/{{slug}}/info" }
+        },
+        {
+          "name": "Stats (nb chambres, note moy.)",
+          "request": { "auth": { "type": "noauth" }, "method": "GET",
+            "url": "{{base_url}}/public/{{slug}}/stats" }
+        },
+        {
+          "name": "Chambres disponibles",
+          "request": { "auth": { "type": "noauth" }, "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/public/{{slug}}/chambres?date_arrivee=2026-06-10&date_depart=2026-06-14&capacite=2",
+              "query": [
+                { "key": "date_arrivee", "value": "2026-06-10" },
+                { "key": "date_depart",  "value": "2026-06-14" },
+                { "key": "capacite",     "value": "2", "disabled": true },
+                { "key": "max_prix",     "value": "100000", "disabled": true },
+                { "key": "type",         "value": "Suite", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Menus (avec articles)",
+          "request": { "auth": { "type": "noauth" }, "method": "GET",
+            "url": "{{base_url}}/public/{{slug}}/menus" }
+        },
+        {
+          "name": "Articles restaurant",
+          "request": { "auth": { "type": "noauth" }, "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/public/{{slug}}/articles",
+              "query": [
+                { "key": "type_repas",   "value": "diner", "disabled": true },
+                { "key": "categorie_id", "value": "1",     "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Avis clients",
+          "request": { "auth": { "type": "noauth" }, "method": "GET",
+            "url": "{{base_url}}/public/{{slug}}/avis" }
+        },
+        {
+          "name": "Tarifs",
+          "request": { "auth": { "type": "noauth" }, "method": "GET",
+            "url": "{{base_url}}/public/{{slug}}/tarifs" }
+        }
+      ]
+    },
+
+    {
+      "name": "👤 Portail Client",
+      "item": [
+        {
+          "name": "🔐 Auth Client",
+          "item": [
+            {
+              "name": "Inscription client",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "if (pm.response.code === 201) {",
+                "  const d = pm.response.json().data;",
+                "  pm.environment.set('client_token', d.token);",
+                "  console.log('Client token:', d.token);",
+                "}"
+              ], "type": "text/javascript" }}],
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "url": "{{base_url}}/public/auth/register",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"slug\": \"{{slug}}\",\n  \"prenom\": \"Jean\",\n  \"nom\": \"Dupont\",\n  \"email\": \"jean.dupont@example.com\",\n  \"telephone\": \"+237600000001\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}" }
+              }
+            },
+            {
+              "name": "Connexion client",
+              "event": [{ "listen": "test", "script": { "exec": [
+                "if (pm.response.code === 200) {",
+                "  const d = pm.response.json().data;",
+                "  pm.environment.set('client_token', d.token);",
+                "  console.log('Client token:', d.token);",
+                "}"
+              ], "type": "text/javascript" }}],
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "url": "{{base_url}}/public/auth/login",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"slug\": \"{{slug}}\",\n  \"email\": \"jean.dupont@example.com\",\n  \"password\": \"password123\"\n}" }
+              }
+            },
+            {
+              "name": "Mon profil",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{client_token}}", "type": "string" }] },
+                "method": "GET", "url": "{{base_url}}/public/auth/me"
+              }
+            },
+            {
+              "name": "Déconnexion",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{client_token}}", "type": "string" }] },
+                "method": "POST", "url": "{{base_url}}/public/auth/logout"
+              }
+            }
+          ]
+        },
+        {
+          "name": "🛏️ Mes Réservations",
+          "item": [
+            {
+              "name": "Liste mes réservations",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{client_token}}", "type": "string" }] },
+                "method": "GET", "url": "{{base_url}}/public/mes-reservations"
+              }
+            },
+            {
+              "name": "Faire une réservation",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{client_token}}", "type": "string" }] },
+                "method": "POST",
+                "url": "{{base_url}}/public/reserver",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"chambre_id\": 1,\n  \"tarif_id\": 1,\n  \"date_arrivee\": \"2026-07-10\",\n  \"date_depart\": \"2026-07-14\",\n  \"nb_adultes\": 2,\n  \"nb_enfants\": 0,\n  \"notes_speciales\": \"Chambre en hauteur si possible\"\n}" }
+              }
+            },
+            {
+              "name": "Annuler une réservation",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{client_token}}", "type": "string" }] },
+                "method": "POST", "url": "{{base_url}}/public/annuler-reservation/1"
+              }
+            }
+          ]
+        },
+        {
+          "name": "🍽️ Mes Commandes",
+          "item": [
+            {
+              "name": "Liste mes commandes",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{client_token}}", "type": "string" }] },
+                "method": "GET", "url": "{{base_url}}/public/mes-commandes"
+              }
+            },
+            {
+              "name": "Passer une commande",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{client_token}}", "type": "string" }] },
+                "method": "POST",
+                "url": "{{base_url}}/public/commander",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"type_commande\": \"room_service\",\n  \"numero_chambre\": \"201\",\n  \"lignes\": [\n    { \"article_id\": 1, \"quantite\": 2, \"notes\": \"sans piment\" },\n    { \"article_id\": 3, \"quantite\": 1 }\n  ]\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "⭐ Mes Avis",
+          "item": [
+            {
+              "name": "Liste mes avis",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{client_token}}", "type": "string" }] },
+                "method": "GET", "url": "{{base_url}}/public/mes-avis"
+              }
+            },
+            {
+              "name": "Laisser un avis",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{client_token}}", "type": "string" }] },
+                "method": "POST",
+                "url": "{{base_url}}/public/avis",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"note_globale\": 5,\n  \"note_chambre\": 5,\n  \"note_service\": 4,\n  \"note_restauration\": 5,\n  \"commentaire\": \"Séjour exceptionnel, personnel très accueillant !\",\n  \"reservation_id\": null\n}" }
+              }
+            }
+          ]
+        },
+        {
+          "name": "📦 Objets Perdus",
+          "item": [
+            {
+              "name": "Mes signalements",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{client_token}}", "type": "string" }] },
+                "method": "GET", "url": "{{base_url}}/public/mes-objets-perdus"
+              }
+            },
+            {
+              "name": "Signaler un objet perdu",
+              "request": {
+                "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{client_token}}", "type": "string" }] },
+                "method": "POST",
+                "url": "{{base_url}}/public/signaler-objet",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": { "mode": "raw", "raw": "{\n  \"description\": \"Chargeur iPhone blanc oublié dans la chambre\",\n  \"numero_chambre\": \"201\",\n  \"contact_restitution\": \"+237600000001\"\n}" }
+              }
+            }
+          ]
+        }
+      ]
+    }
+
+  ]
+}
