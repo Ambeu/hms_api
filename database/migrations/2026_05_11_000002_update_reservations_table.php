@@ -11,7 +11,7 @@ return new class extends Migration
     {
         // Ajouter la colonne unite
         Schema::table('reservations', function (Blueprint $table) {
-            $table->string('unite')->default('nuit')->after('statut');
+            // $table->string('unite')->default('nuit')->after('statut');
         });
 
         // Convertir date_arrivee et date_depart de DATE en DATETIME
