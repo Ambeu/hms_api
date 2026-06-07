@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tarifs', function (Blueprint $table) {
-            $table->string('unite')->default('nuit')->after('prix');    // nuit, heure, jour, semaine
+            // $table->string('unite')->default('nuit')->after('prix');    // nuit, heure, jour, semaine
             $table->integer('duree_min')->default(1)->after('unite');   // durée minimale en unités
         });
     }
