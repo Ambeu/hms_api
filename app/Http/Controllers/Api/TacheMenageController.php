@@ -128,7 +128,7 @@ class TacheMenageController extends BaseController
 
     private function lienAcces(string $token): string
     {
-        $frontend = rtrim(env('FRONTEND_URL', 'http://localhost:5174'), '/');
+        $frontend = rtrim(env('FRONTEND_URL', 'https://hms.andysoft.tech'), '/');
         return "{$frontend}/tache-agent/{$token}";
     }
 
