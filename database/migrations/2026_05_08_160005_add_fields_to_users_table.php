@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('current_etablissement_id')->nullable()->after('id')->constrained('etablissements')->nullOnDelete();
             $table->string('nom')->nullable()->after('current_etablissement_id');
             $table->string('prenom')->nullable()->after('nom');
-            $table->string('phone')->nullable()->after('prenom');
+            // $table->string('phone')->nullable()->after('prenom');
             $table->string('role')->default('reception')->after('email');
             $table->boolean('actif')->default(true)->after('role');
             $table->timestamp('derniere_connexion')->nullable()->after('actif');
